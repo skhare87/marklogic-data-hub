@@ -58,8 +58,11 @@ describe('Default ingestion ', () => {
         cy.findByText('UPDATE').should('be.visible');
 
         //Verify Settings
-        loadPage.stepSettings(stepName).click();
-        loadPage.stepNameInSettings().should('have.text', stepName);
+        // TODO Verify Advanced Settings
+        loadPage.stepSettings(stepName).click(); // TODO should click Edit instead
+        // TODO click Advanced tab, need to write a helper and do this
+        loadPage.stepNameInSettings().should('have.text', stepName); // NO LONGER THERE, should fail here, remove
+        // The rest should run OK (???)
         loadPage.selectTargetDB('FINAL');
         loadPage.targetCollectionInput().type('e2eTestCollection{enter}test1{enter}test2{enter}');
         cy.findByText('Default Collections').click();
@@ -134,8 +137,11 @@ describe('Default ingestion ', () => {
 
         //Verify Settings
         cy.waitForAsyncRequest();
-        loadPage.stepSettings(stepName).click();
-        loadPage.stepNameInSettings().should('have.text', stepName);
+        loadPage.stepSettings(stepName).click(); // SETTINGS ICON NO LONGER THERE, should fail here, remove
+        // TODO open edit dialog, same as above
+        loadPage.stepNameInSettings().should('have.text', stepName); // This should exist under Basic tab
+        // TODO click Advanced tab, need to write a helper and do this (see above)
+        // The rest should run OK (???)
         loadPage.selectTargetDB('STAGING');
         loadPage.targetCollectionInput().type('e2eTestCollection{enter}test1{enter}test2{enter}');
         cy.findByText('Default Collections').click();

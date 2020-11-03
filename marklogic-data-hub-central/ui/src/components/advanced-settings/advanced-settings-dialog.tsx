@@ -1,17 +1,11 @@
-import {
-  Modal,
-  Form,
-  Input,
-  Icon,
-  Select,
-} from 'antd';
 import React, { useState, useEffect } from 'react';
+import { Modal, Form, Input, Icon, Select } from 'antd';
 import styles from './advanced-settings-dialog.module.scss';
 import { AdvancedSettings } from '../../config/tooltips.config';
 import { AdvancedSettingsMessages } from '../../config/messages.config';
-import Axios from 'axios';
+import { createStep, getStep } from '../../api/steps';
 import { MLButton, MLTooltip } from '@marklogic/design-system';
-
+import './advanced-settings-dialog.scss';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -80,26 +74,31 @@ const AdvancedSettingsDialog = (props) => {
   const [customHookValid, setCustomHookValid] = useState(true);
   const [additionalSettings, setAdditionalSettings] = useState('');
 
-  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [loading,setLoading] = useState(false);
+  const [discardChangesVisible, setDiscardChangesVisible] = useState(false);
+  const [saveChangesVisible, setSaveChangesVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const canReadWrite = props.canWrite;
 
+  const initStep = () => {
+    setSourceDatabaseTouched(false);
+    setTargetDatabaseTouched(false);
+    setAddCollTouched(false);
+    setTargetPermissionsTouched(false);
+    setTargetFormatTouched(false);
+    setProvGranularityTouched(false);
+    setValidateEntityTouched(false);
+    setBatchSizeTouched(false);
+    setHeadersTouched(false);
+    setProcessorsTouched(false);
+    setCustomHookTouched(false);
+  }
+
   useEffect(() => {
-    getSettingsArtifact();
+    getSettings();
+    initStep();
 
     return () => {
-      setSourceDatabaseTouched(false);
-      setTargetDatabaseTouched(false);
-      setAddCollTouched(false);
-      setTargetPermissionsTouched(false);
-      setTargetFormatTouched(false);
-      setProvGranularityTouched(false);
-      setValidateEntityTouched(false);
-      setBatchSizeTouched(false);
-      setHeadersTouched(false);
-      setProcessorsTouched(false);
-      setCustomHookTouched(false);
 
       setStepDefinitionName('');
       setIsCustomIngestion(false);
@@ -125,7 +124,7 @@ const AdvancedSettingsDialog = (props) => {
       setProcessorsValid(true);
       setCustomHookValid(true);
     };
-  },[props.openAdvancedSettings  ,loading]);
+  },[props.openStepSettings, loading])
 
   const isFormValid = () => {
     return headersValid && processorsValid && customHookValid;
@@ -153,28 +152,26 @@ const AdvancedSettingsDialog = (props) => {
     }
   };
 
-  // CREATE/POST settings Artifact
-  const createSettingsArtifact = async (settingsObj) => {
+  const createSettings = async (settingsObj) => {
     if (props.stepData.name) {
       try {
         setLoading(true);
-        let response = await Axios.post(`/api/steps/${stepType}/${props.stepData.name}`, settingsObj);
+        let response = await createStep(props.stepData.name, stepType, settingsObj);
         if (response.status === 200) {
           setLoading(false);
         }
       } catch (error) {
         let message = error.response.data.message;
-        console.error('Error while creating the activity settings artifact', message);
+        console.error('Error while creating the step', message)
         setLoading(false);
       }
     }
   };
 
-  // GET the settings artifact
-  const getSettingsArtifact = async () => {
+  const getSettings = async () => {
     if (props.stepData.name) {
       try {
-        let response = await Axios.get(`/api/steps/${stepType}/${props.stepData.name}`);
+        let response = await getStep(props.stepData.name, stepType);
         if (response.status === 200) {
           if(stepType === 'ingestion' && response.data.stepDefinitionName !== 'default-ingestion'){
               setIsCustomIngestion(true);
@@ -210,7 +207,7 @@ const AdvancedSettingsDialog = (props) => {
         }
       } catch (error) {
         let message = error.response;
-        console.error('Error while fetching load settings artifacts', message || error);
+        console.error('Error while fetching settings artifact', message || error);
         setSourceDatabase(defaultSourceDatabase);
         setTargetDatabase(defaultTargetDatabase);
         setAdditionalCollections([]);
@@ -230,19 +227,22 @@ const AdvancedSettingsDialog = (props) => {
   };
 
   const onCancel = () => {
-    if(checkDeleteOpenEligibility()){
-      setDeleteDialogVisible(true);
+    if (hasFormChanged()) {
+      setDiscardChangesVisible(true);
     } else {
-      props.setOpenAdvancedSettings(false);
+      props.setOpenStepSettings(false)
+      props.resetTabs();
     }
   };
 
-  const onOk = () => {
-    props.setOpenAdvancedSettings(false);
-  };
+  useEffect(() => {
+    if (props.currentTab !== props.tabKey && hasFormChanged()) {
+      setSaveChangesVisible(true);
+    }
+  }, [props.currentTab])
 
   //Check if Delete Confirmation dialog should be opened or not.
-  const checkDeleteOpenEligibility = () => {
+  const hasFormChanged = () => {
       if ( !sourceDatabaseTouched
         && !targetDatabaseTouched
         && !addCollTouched
@@ -261,17 +261,18 @@ const AdvancedSettingsDialog = (props) => {
       }
   };
 
-  const onDelOk = () => {
-    props.setOpenAdvancedSettings(false);
-    setDeleteDialogVisible(false);
-  };
+  const discardOk = () => {
+    props.setOpenStepSettings(false);
+    props.resetTabs();
+    setDiscardChangesVisible(false);
+  }
 
-  const onDelCancel = () => {
-    setDeleteDialogVisible(false);
-  };
+  const discardCancel = () => {
+    setDiscardChangesVisible(false);
+  }
 
-  const deleteConfirmation = <Modal
-      visible={deleteDialogVisible}
+  const discardChanges = <Modal
+      visible={discardChangesVisible}
       bodyStyle={{textAlign: 'center'}}
       width={250}
       maskClosable={false}
@@ -281,31 +282,67 @@ const AdvancedSettingsDialog = (props) => {
   >
       <span className={styles.ConfirmationMessage}>Discard changes?</span><br/><br/>
       <div >
-          <MLButton aria-label="No" onClick={() => onDelCancel()}>No</MLButton>&nbsp;&nbsp;
-          <MLButton aria-label="Yes" type="primary" htmlType="submit" onClick={onDelOk}>Yes</MLButton>
+          <MLButton aria-label="No" onClick={() => discardCancel()}>No</MLButton>&nbsp;&nbsp;
+          <MLButton aria-label="Yes" type="primary" htmlType="submit" onClick={discardOk}>Yes</MLButton>
         </div>
   </Modal>;
+
+const saveOk = () => {
+  const payload = getPayload();
+  createSettings(payload);
+  props.updateLoadArtifact(payload);
+  setSaveChangesVisible(false)
+}
+
+const saveCancel = () => {
+  setSaveChangesVisible(false);
+  getSettings();
+  initStep();
+}
+
+const saveChanges = <Modal
+      visible={saveChangesVisible}
+      bodyStyle={{textAlign: 'center'}}
+      width={250}
+      maskClosable={false}
+      closable={false}
+      footer={null}
+      destroyOnClose={true}
+      >
+      <span className={styles.ConfirmationMessage}>Save changes?</span>
+      <br/><br/>
+      <div >
+          <MLButton aria-label="No" onClick={() => saveCancel()}>No</MLButton>
+          &nbsp;&nbsp;
+          <MLButton aria-label="Yes" type="primary" htmlType="submit" onClick={saveOk}>Yes</MLButton>
+        </div>
+</Modal>;
+
+const getPayload = () => {
+  return {
+    collections: defaultCollections,
+    additionalCollections: additionalCollections,
+    sourceDatabase: usesSourceDatabase ? sourceDatabase: null,
+    targetDatabase: targetDatabase,
+    targetFormat: targetFormat,
+    permissions: targetPermissions,
+    headers: isEmptyString(headers) ? {} : parseJSON(headers),
+    processors: isEmptyString(processors) ? [] : parseJSON(processors),
+    provenanceGranularityLevel: provGranularity,
+    validateEntity: validateEntity,
+    batchSize: batchSize,
+    customHook: isEmptyString(customHook) ? {} : parseJSON(customHook),
+  }
+}
 
   const handleSubmit = async (event: { preventDefault: () => void; }) => {
     if (event) event.preventDefault();
 
-    let dataPayload = {
-        collections: defaultCollections,
-        additionalCollections: additionalCollections,
-        sourceDatabase: usesSourceDatabase ? sourceDatabase: null,
-        targetDatabase: targetDatabase,
-        targetFormat: targetFormat,
-        permissions: targetPermissions,
-        headers: isEmptyString(headers) ? {} : parseJSON(headers),
-        processors: isEmptyString(processors) ? [] : parseJSON(processors),
-        provenanceGranularityLevel: provGranularity,
-        validateEntity: validateEntity,
-        batchSize: batchSize,
-        customHook: isEmptyString(customHook) ? {} : parseJSON(customHook),
-      };
+    let payload = getPayload();
     if (isPermissionsValid()) {
-        createSettingsArtifact(dataPayload);
-        props.setOpenAdvancedSettings(false);
+        createSettings(payload);
+        props.setOpenStepSettings(false);
+        props.resetTabs();
     }
   };
 
@@ -383,19 +420,25 @@ const AdvancedSettingsDialog = (props) => {
       setBatchSize(event.target.value);
       setBatchSizeTouched(true);
     }
-  };
+
+    props.setHasChanged(hasFormChanged()); // changed flag for parent
+    
+  }
 
   const handleBlur = (event) => {
     if (event.target.id === 'headers') {
       setHeadersValid(isValidJSON(event.target.value));
+      props.setIsValid(isValidJSON(event.target.value));
     }
 
     if (event.target.id === 'processors') {
       setProcessorsValid(isValidJSON(event.target.value));
+      props.setIsValid(isValidJSON(event.target.value));
     }
 
     if (event.target.id === 'customHook') {
       setCustomHookValid(isValidJSON(event.target.value));
+      props.setIsValid(isValidJSON(event.target.value));
     }
 
     if (event.target.id === 'batchSize'){
@@ -480,20 +523,7 @@ const AdvancedSettingsDialog = (props) => {
 
   const provGranOpts = Object.keys(provGranularityOptions).map(d => <Option data-testid={`provOptions-${d}`} key={provGranularityOptions[d]}>{d}</Option>);
   const valEntityOpts = Object.keys(validateEntityOptions).map( (d, index) => <Option data-testid={`entityValOpts-${index}`} key={validateEntityOptions[d]}>{d}</Option>);
-  return <Modal
-    visible={props.openAdvancedSettings}
-    title={null}
-    width="700px"
-    onCancel={() => onCancel()}
-    onOk={() => onOk()}
-    okText="Save"
-    className={styles.SettingsModal}
-    footer={null}
-    maskClosable={false}
-    destroyOnClose={true}
-  >
-    <p className={styles.title}>Advanced Step Settings</p>
-    <p aria-label={`step-name-${props.stepData.name}`} className={styles.stepName}>{props.stepData.name}</p><br/>
+  return (
     <div className={styles.newDataForm}>
       <Form {...formItemLayout} onSubmit={handleSubmit} colon={true}>
         {isCustomIngestion ? <Form.Item
@@ -807,9 +837,11 @@ const AdvancedSettingsDialog = (props) => {
           </div>
         </Form.Item>
       </Form>
-    </div>
-    {deleteConfirmation}
-  </Modal>;
-};
+      {discardChanges}
+      {saveChanges}
+    </div> 
+  );
+
+}
 
 export default AdvancedSettingsDialog;
