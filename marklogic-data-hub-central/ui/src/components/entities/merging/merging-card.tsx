@@ -12,12 +12,12 @@ import CreateEditStepDialog from '../create-edit-step-dialog/create-edit-step-di
 import AdvancedSettingsDialog from "../../advanced-settings/advanced-settings-dialog";
 import ConfirmationModal from '../../confirmation-modal/confirmation-modal';
 
-import { AuthoritiesContext } from "../../../util/authorities";
 import { CurationContext } from '../../../util/curation-context';
 import {convertDateFromISO, getInitialChars, extractCollectionFromSrcQuery} from '../../../util/conversionFunctions';
 import { AdvMapTooltips, SecurityTooltips } from '../../../config/tooltips.config';
 import { ConfirmationType } from '../../../types/common-types';
 import { MergingStep, StepType} from '../../../types/curation-types';
+import Steps from "../../steps/steps";
 
 interface Props {
   mergingStepsArray: any;
@@ -36,7 +36,6 @@ const { Option } = Select;
 
 const MergingCard: React.FC<Props> = (props) => {
   const history = useHistory<any>();
-  const authorityService = useContext(AuthoritiesContext);
   const { setActiveStep } = useContext(CurationContext);
   const [selected, setSelected] = useState({}); // track Add Step selections so we can reset on cancel
   const [selectVisible, setSelectVisible] = useState(false);
@@ -53,11 +52,26 @@ const MergingCard: React.FC<Props> = (props) => {
   const [showConfirmModal, toggleConfirmModal] = useState(false);
   const [confirmBoldTextArray, setConfirmBoldTextArray] = useState<string[]>([]);
 
+  const [openStepSettings, setOpenStepSettings] = useState(false);
+  const [isNewStep, setIsNewStep] = useState(false);
+
+  const OpenAddNew = () => {
+    setIsNewStep(true);
+    setOpenStepSettings(true);
+  }
+
   const openAddStepDialog = () => {
     setEditStepArtifact({});
     toggleIsEditing(false);
     toggleCreateEditStepModal(true);
   };
+
+  const OpenStepSettings = (index) => {
+    setIsNewStep(false);
+    //setStepData(prevState => ({ ...prevState, ...props.data[index]}));
+    setEditStepArtifact(props.mergingStepsArray[index]);
+    setOpenStepSettings(true);
+  }
 
   const openEditStepDialog = (index) => {
     setEditStepArtifact(props.mergingStepsArray[index])
@@ -75,6 +89,17 @@ const MergingCard: React.FC<Props> = (props) => {
     setActiveStep(mergingStep, props.entityModel['model']['definitions'], props.entityName);
     history.push({ pathname: '/tiles/curate/merge'});
    };
+
+   const createMappingArtifact = async (payload) => {
+    // Update local form state, then save to db
+    setEditStepArtifact(payload);
+    props.createMergingArtifact(payload);
+}
+
+const updateMappingArtifact = (payload) => {
+    // Update local form state
+    setEditStepArtifact(payload);
+}
 
   const deleteStepClicked = (name) => {
     toggleConfirmModal(true);
@@ -126,7 +151,8 @@ const MergingCard: React.FC<Props> = (props) => {
           key ="last"
           role="edit-merging button"
           data-testid={step.name+'-edit'}
-          onClick={() => openEditStepDialog(index)}
+          //onClick={() => openEditStepDialog(index)}
+          onClick={() => OpenStepSettings(index)}
         />
       </MLTooltip>,
 
@@ -136,15 +162,15 @@ const MergingCard: React.FC<Props> = (props) => {
         </i>
       </MLTooltip>,
 
-      <MLTooltip title={'Settings'} placement="bottom">
-        <Icon
-          type="setting"
-          key="setting"
-          role="settings-merging button"
-          data-testid={step.name+'-settings'}
-          onClick={() => stepSettingsClicked(index)}
-          />
-      </MLTooltip>,
+      // <MLTooltip title={'Settings'} placement="bottom">
+      //   <Icon
+      //     type="setting"
+      //     key="setting"
+      //     role="settings-merging button"
+      //     data-testid={step.name+'-settings'}
+      //     onClick={() => stepSettingsClicked(index)}
+      //     />
+      // </MLTooltip>,
 
       props.canReadMatchMerge ? (
       <MLTooltip title={'Delete'} placement="bottom">
@@ -170,7 +196,7 @@ const MergingCard: React.FC<Props> = (props) => {
             <Card
               size="small"
               className={styles.addNewCard}>
-              <div><Icon type="plus-circle" className={styles.plusIcon} theme="filled" onClick={openAddStepDialog}/></div>
+              <div><Icon type="plus-circle" className={styles.plusIcon} theme="filled" onClick={OpenAddNew}/></div>
               <br />
               <p className={styles.addNewContent}>Add New</p>
             </Card>
@@ -242,7 +268,7 @@ const MergingCard: React.FC<Props> = (props) => {
           ))
         ) : null}
       </Row>
-      <CreateEditStepDialog
+      {/* <CreateEditStepDialog
         isVisible={showCreateEditStepModal}
         isEditing={isEditing}
         stepType={StepType.Merging}
@@ -252,15 +278,15 @@ const MergingCard: React.FC<Props> = (props) => {
         canReadWrite={props.canWriteMatchMerge}
         canReadOnly={props.canReadMatchMerge}
         toggleModal={toggleCreateEditStepModal}
-      />
-      <AdvancedSettingsDialog
+      /> */}
+      {/* <AdvancedSettingsDialog
         tooltipsData={AdvMapTooltips}
         openAdvancedSettings={showStepSettings}
         setOpenAdvancedSettings={toggleStepSettings}
         stepData={stepArtifact}
         activityType={StepType.Merging}
         canWrite={authorityService.canWriteMatchMerge()}
-      />
+      /> */}
       <ConfirmationModal
         isVisible={showConfirmModal}
         type={confirmType}
@@ -268,6 +294,24 @@ const MergingCard: React.FC<Props> = (props) => {
         toggleModal={toggleConfirmModal}
         confirmAction={confirmAction}
       />
+      <Steps
+        // Basic Settings
+        isNewStep={isNewStep}
+        createStep={createMappingArtifact}
+        stepData={stepArtifact}
+        canReadOnly={props.canReadMatchMerge}
+        canReadWrite={props.canWriteMatchMerge}
+        canWrite={props.canWriteMatchMerge}
+        // Advanced Settings
+        tooltipsData={AdvMapTooltips}
+        openStepSettings={openStepSettings}
+        setOpenStepSettings={setOpenStepSettings}
+        updateStep={updateMappingArtifact}
+        activityType={StepType.Matching}
+        // Match
+        targetEntityType={props.entityName}
+      />
+
     </div>
   )
 };
