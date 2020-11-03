@@ -32,7 +32,6 @@ describe('Create Edit Step Dialog component', () => {
 
     expect(getByText('Save')).toBeDisabled();
     expect(getByText('Cancel')).toBeEnabled();
-    expect(getByLabelText('Close')).toBeEnabled();
   });
 
   test('Verify New Merging Dialog renders ', () => {
@@ -40,7 +39,6 @@ describe('Create Edit Step Dialog component', () => {
       <CreateEditStepDialog {...data.newMerging} />
     );
 
-    expect(getByText('New Merging Step')).toBeInTheDocument();
     expect(getByPlaceholderText('Enter name')).toBeInTheDocument();
     expect(getByPlaceholderText('Enter description')).toBeInTheDocument();
     expect(getByLabelText('Collection')).toBeInTheDocument();
@@ -110,43 +108,23 @@ describe('Create Edit Step Dialog component', () => {
 
     });
 
-    test('Verify new merging modal closes when Cancel is clicked', () => {
-        const { getByText, rerender, queryByText } = render(<CreateEditStepDialog {...data.newMerging} />);
-
-        expect(getByText('New Merging Step')).toBeInTheDocument();
-        fireEvent.click(getByText('Cancel'));
-        expect(data.newMerging.toggleModal).toHaveBeenCalledTimes(1);
-
-    });
-
-    test('Verify new merging modal closes when "x" is clicked', () => {
-        const { getByLabelText, getByText, rerender, queryByText } = render(<CreateEditStepDialog {...data.newMerging} />);
-        expect(getByText('New Merging Step')).toBeInTheDocument();
-        fireEvent.click(getByLabelText('Close'));
-        expect(data.newMerging.toggleModal).toHaveBeenCalledTimes(1);
-    });
-
     test('Verify delete dialog modal when Cancel is clicked', async () => {
         const { getByLabelText, getByText } = render(<CreateEditStepDialog {...data.newMerging} />);
         userEvent.click(getByLabelText('Query'));
+
+        userEvent.click(getByText('Cancel'));
+        await wait(() =>
+          expect(screen.getByLabelText('discard-changes-text')).toBeInTheDocument(),
+        );
+        userEvent.click(screen.getByLabelText(`confirm-${ConfirmationType.DiscardChanges}-no`));
+        expect(data.newMerging.setOpenStepSettings).toHaveBeenCalledTimes(0);
+
         userEvent.click(getByText('Cancel'));
         await wait(() =>
           expect(screen.getByLabelText('discard-changes-text')).toBeInTheDocument(),
         );
         userEvent.click(screen.getByLabelText(`confirm-${ConfirmationType.DiscardChanges}-yes`));
-        expect(data.newMerging.toggleModal).toHaveBeenCalledTimes(1);
-    });
-
-    test('Verify delete dialog modal when "x" is clicked and cancel discarding changes', async () => {
-        const { getByLabelText, getByText, queryByText } = render(<CreateEditStepDialog {...data.newMerging} />);
-        expect(getByLabelText('Query')).toBeInTheDocument();
-        userEvent.click(getByLabelText('Query'));
-        userEvent.click(getByLabelText('Close'));
-        await wait(() =>
-          expect(screen.getByLabelText('discard-changes-text')).toBeInTheDocument(),
-        );
-        userEvent.click(screen.getByLabelText(`confirm-${ConfirmationType.DiscardChanges}-no`));
-        expect(data.newMerging.toggleModal).toHaveBeenCalledTimes(0);
+        expect(data.newMerging.setOpenStepSettings).toHaveBeenCalledTimes(1);
     });
 
     test('Verify Edit Merging dialog renders correctly', () => {

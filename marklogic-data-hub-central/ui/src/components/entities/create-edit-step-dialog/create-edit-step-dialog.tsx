@@ -1,26 +1,28 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Modal, Form, Input, Icon, Radio, AutoComplete } from "antd";
+import { Form, Input, Icon, Radio, AutoComplete } from "antd";
 import axios from "axios";
 import styles from './create-edit-step-dialog.module.scss';
-
-import ConfirmationModal from '../../confirmation-modal/confirmation-modal';
-
 import { UserContext } from '../../../util/user-context';
 import { NewMatchTooltips } from '../../../config/tooltips.config';
 import { MLButton, MLTooltip } from '@marklogic/design-system'; 
-import { ConfirmationType } from '../../../types/common-types';
 import { StepType } from '../../../types/curation-types';
+import ConfirmYesNo from '../../common/confirm-yes-no/confirm-yes-no';
 
 type Props = {
-  isVisible: boolean;
+  tabKey: string;
+  openStepSettings: boolean;
+  setOpenStepSettings: any;
   isEditing: boolean;
   stepType: StepType;
   editStepArtifactObject: any;
   targetEntityType: string;
   canReadWrite: boolean;
   canReadOnly: boolean;
-  toggleModal: (isVisible: boolean) => void;
   createStepArtifact: (stepArtifact: any) => void;
+  currentTab: string;
+  setIsValid?: any;
+  resetTabs?: any;
+  setHasChanged?: any;
 }
 
 const formItemLayout = {
@@ -44,7 +46,6 @@ const { TextArea } = Input;
 const CreateEditStepDialog: React.FC<Props>  = (props) => {
 
   const { handleError } = useContext(UserContext)
-  const [modalTitle, setModalTitle] = useState('');
   const [stepName, setStepName] = useState('');
   const [description, setDescription] = useState('');
 
@@ -64,49 +65,40 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
 
   const [showConfirmModal, toggleConfirmModal] = useState(false);
   const [tobeDisabled, setTobeDisabled] = useState(false);
+  const [discardChangesVisible, setDiscardChangesVisible] = useState(false);
+  const [saveChangesVisible, setSaveChangesVisible] = useState(false);
+
+  const initStep = () => {
+    setStepName(props.editStepArtifactObject.name);
+    setDescription(props.editStepArtifactObject.description);
+    setSrcQuery(props.editStepArtifactObject.sourceQuery);
+    setSelectedSource(props.editStepArtifactObject.selectedSource);
+    if (props.editStepArtifactObject.selectedSource === 'collection') {
+      let srcCollection = props.editStepArtifactObject.sourceQuery.substring(
+          props.editStepArtifactObject.sourceQuery.lastIndexOf("[") + 2,
+          props.editStepArtifactObject.sourceQuery.lastIndexOf("]") - 1
+      );
+      setCollections(srcCollection);
+    }
+    resetTouchedValues();
+    setIsValid(true);
+    setTobeDisabled(true);
+  }
 
   useEffect(() => {
-    if (props.isVisible) {
-      let modalTitle = '';
-
+    if (props.currentTab === props.tabKey) {
+      // Edit Step Artifact
       if (props.isEditing) {
-        if (props.stepType === StepType.Matching) {
-          modalTitle = 'Edit Matching Step';
-        } else if (props.stepType === StepType.Merging) {
-          modalTitle = 'Edit Merging Step';
-        }
-
-        setStepName(props.editStepArtifactObject.name);
-        setDescription(props.editStepArtifactObject.description);
-        setSrcQuery(props.editStepArtifactObject.sourceQuery);
-        setSelectedSource(props.editStepArtifactObject.selectedSource);
-
-        if (props.editStepArtifactObject.selectedSource === 'collection') {
-        let srcCollection = props.editStepArtifactObject.sourceQuery.substring(
-            props.editStepArtifactObject.sourceQuery.lastIndexOf("[") + 2,
-            props.editStepArtifactObject.sourceQuery.lastIndexOf("]") - 1
-        );
-        setCollections(srcCollection);
-        }
-        
-        resetTouchedValues();
-        setIsValid(true);
-        setTobeDisabled(true);
-
-      } else {
-        // New Step Artifact
-        if (props.stepType === StepType.Matching) {
-          modalTitle = 'New Matching Step';
-        } else if (props.stepType === StepType.Merging) {
-          modalTitle = 'New Merging Step';
-        }
-        resetModal();
+        initStep()
+      } 
+      // New Step Artifact
+      else {
+        reset();
       }
-      setModalTitle(modalTitle);
     }
-  }, [props.isVisible]);
+  }, [props.currentTab]);
 
-  const resetModal = () => {
+  const reset = () => {
     setStepName('');
     setDescription('');
     setSelectedSource('collection');
@@ -124,16 +116,23 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
     setDescriptionTouched(false);
   }
 
+  useEffect(() => {
+    if (props.currentTab !== props.tabKey && hasFormChanged()) {
+      setSaveChangesVisible(true);
+    }
+  }, [props.currentTab])
+
   const onCancel = () => {
-    if (checkDeleteOpenEligibility()) {
-      toggleConfirmModal(true);
+    if (hasFormChanged()) {
+      setDiscardChangesVisible(true);
     } else {
-      resetModal();
-      props.toggleModal(false)
+      reset();
+      props.setOpenStepSettings(false);
+      props.resetTabs();
     }
   };
 
-  const checkDeleteOpenEligibility = () => {
+  const hasFormChanged = () => {
     if (!isStepNameTouched
       && !isDescriptionTouched
       && !isSelectedSourceTouched
@@ -146,17 +145,50 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
     }
   };
 
-  const confirmAction = () => {
-    toggleConfirmModal(false);
-    props.toggleModal(false);
+  const discardOk = () => {
+    props.setOpenStepSettings(false);
+    setDiscardChangesVisible(false);
   };
 
-  const handleSubmit = async (event: { preventDefault: () => void; }) => {
-    if (event) event.preventDefault();
-    let dataPayload;
+  const discardCancel = () => {
+    setDiscardChangesVisible(false);
+  };
+
+  const discardChanges = <ConfirmYesNo
+    visible={discardChangesVisible}
+    body='Discard changes?'
+    onYes={discardOk}
+    onNo={discardCancel}
+  />;
+
+  const saveOk = () => {
+    props.createStepArtifact(getPayload());
+    setSaveChangesVisible(false)
+  }
+
+  const saveCancel = () => {
+    setSaveChangesVisible(false);
+    initStep();
+  }
+
+  const saveChanges = <ConfirmYesNo
+    visible={saveChangesVisible}
+    body='Save changes?'
+    onYes={saveOk}
+    onNo={saveCancel}
+  />;
+
+  const confirmAction = () => {
+    toggleConfirmModal(false);
+    props.setOpenStepSettings(false);
+    props.resetTabs();
+  };
+
+  const getPayload = () => {
+    let result;
     if(selectedSource === 'collection') {
       let sQuery = `cts.collectionQuery(['${collections}'])`;
-      dataPayload = {
+      result = {
         name: stepName,
         targetEntityType: props.targetEntityType,
         description: description,
@@ -164,7 +196,7 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
         sourceQuery: sQuery
       };
     } else {
-      dataPayload = {
+      result = {
         name: stepName,
         targetEntityType: props.targetEntityType,
         description: description,
@@ -172,10 +204,17 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
         sourceQuery: srcQuery
       };
     }
+    return result;
+  }
+
+  const handleSubmit = async (event: { preventDefault: () => void; }) => {
+    if (event) event.preventDefault();
 
     setIsValid(true);
-    props.createStepArtifact(dataPayload);
-    props.toggleModal(false);
+
+    props.createStepArtifact(getPayload());
+    props.setOpenStepSettings(false);
+    props.resetTabs();
   };
 
   const handleSearch = async (value: any) => {
@@ -297,6 +336,9 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
         }
       }
     }
+
+    props.setHasChanged(hasFormChanged()); // changed flag for parent
+
   };
 
   const handleSelectedSource = (event) => {
@@ -325,21 +367,7 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
     }
   };
 
-
   return (
-    <Modal 
-      visible={props.isVisible}
-      title={null}
-      width="700px"
-      onCancel={onCancel}
-      closable={true}
-      className={styles.modal}
-      footer={null}
-      maskClosable={false}
-      destroyOnClose={true}
-    >
-      <p className={styles.title}>{modalTitle}</p>
-      <br />
       <div className={styles.newMatchingForm}>
         <Form {...formItemLayout} onSubmit={handleSubmit} colon={false}>
           <Form.Item label={<span>
@@ -426,15 +454,9 @@ const CreateEditStepDialog: React.FC<Props>  = (props) => {
             </div>
           </Form.Item>
         </Form>
+        {discardChanges}
+        {saveChanges}
       </div>
-      <ConfirmationModal
-        isVisible={showConfirmModal}
-        type={ConfirmationType.DiscardChanges}
-        boldTextArray={[]}
-        toggleModal={toggleConfirmModal}
-        confirmAction={confirmAction}
-      />
-    </Modal>
   );
 };
 
