@@ -97,6 +97,7 @@ const Steps: React.FC<Props> = (props) => {
         isNewStep={props.isNewStep}
         createMappingArtifact={props.createStep}
         stepData={props.stepData}
+        targetEntityType={props.targetEntityType}
     />);
 
     const createEditMatching = (<CreateEditStep

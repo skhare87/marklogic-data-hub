@@ -89,6 +89,14 @@ class CuratePage {
         return cy.findByTestId(`${stepName}-edit`);
     }
 
+    switchEditAdvanced() {
+        return cy.findByText('Advanced');
+    }
+
+    switchEditBasic() {
+        return cy.findByText('Basic');
+    }
+
     runStepInCardView(stepName: string) {
         return cy.findByTestId(`${stepName}-run`);
     }

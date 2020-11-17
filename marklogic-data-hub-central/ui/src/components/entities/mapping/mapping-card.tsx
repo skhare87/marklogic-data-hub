@@ -802,6 +802,7 @@ const MappingCard: React.FC<Props> = (props) => {
                 setOpenStepSettings={setOpenStepSettings}
                 updateStep={updateMappingArtifact}
                 activityType={activityType}
+                targetEntityType={props.entityModel.entityTypeId}
             />
         </div>
     );

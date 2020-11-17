@@ -46,10 +46,12 @@ describe('Mapping', () => {
     loadPage.stepDescriptionInput().type('load order with processors');
     loadPage.confirmationOptions('Save').click();
     cy.findByText(loadStep).should('be.visible');
-    loadPage.stepSettings(loadStep).click();
+
+    // Open step settings and switch to Advanced tab
+    cy.waitUntil(() => loadPage.editStepInCardView(loadStep).click({force:true}));
+    loadPage.stepSettings().click(); 
 
     // add processor to load step
-    cy.waitUntil(() => advancedSettingsDialog.getStepName(loadStep).should('be.visible'));
     advancedSettingsDialog.setStepProcessor('loadTile/orderCategoryCodeProcessor');
 
     //add cutomHook to load step
@@ -86,9 +88,11 @@ describe('Mapping', () => {
     createEditMappingDialog.saveButton().click(); 
     curatePage.verifyStepNameIsVisible(mapStep);
 
+    // Open step settings and switch to Advanced tab
+    cy.waitUntil(() => curatePage.editStep(mapStep).click({force:true}));
+    curatePage.switchEditAdvanced().click(); 
+
     // add processors
-    curatePage.stepSettings(mapStep).click();
-    cy.waitUntil(() => advancedSettingsDialog.getStepName(mapStep).should('be.visible'));
     advancedSettingsDialog.setStepProcessor('curateTile/orderDateProcessor');
 
     // add customHook to mapping step
@@ -144,10 +148,12 @@ describe('Mapping', () => {
     loadPage.stepDescriptionInput().type('load order with a custom header');
     loadPage.confirmationOptions('Save').click();
     cy.findByText(loadStep).should('be.visible');
-    loadPage.stepSettings(loadStep).click();
+
+    // Open step settings and switch to Advanced tab
+    cy.waitUntil(() => loadPage.editStepInCardView(loadStep).click({force:true}));
+    loadPage.stepSettings().click(); 
 
     // add custom header to load step
-    cy.waitUntil(() => advancedSettingsDialog.getStepName(loadStep).should('be.visible'));
     advancedSettingsDialog.setHeaderContent('loadTile/customHeader');
     advancedSettingsDialog.saveSettings(loadStep).click();
     advancedSettingsDialog.saveSettings(loadStep).should('not.be.visible');
@@ -176,12 +182,14 @@ describe('Mapping', () => {
     createEditMappingDialog.setMappingDescription('An order mapping with custom header');
     createEditMappingDialog.setSourceRadio('Query');
     createEditMappingDialog.setQueryInput(`cts.collectionQuery(['${loadStep}'])`);
-    createEditMappingDialog.saveButton().click(); 
-    curatePage.verifyStepNameIsVisible(mapStep);
+    createEditMappingDialog.saveButton().click({force:true}); 
+    cy.waitUntil(() => curatePage.verifyStepNameIsVisible(mapStep));
+
+    // Open step settings and switch to Advanced tab
+    cy.waitUntil(() => curatePage.editStep(mapStep).click({force:true}));
+    curatePage.switchEditAdvanced().click(); 
 
     // add custom header
-    curatePage.stepSettings(mapStep).click();
-    cy.waitUntil(() => advancedSettingsDialog.getStepName(mapStep).should('be.visible'));
     advancedSettingsDialog.setHeaderContent('curateTile/customHeader');
     advancedSettingsDialog.saveSettings(mapStep).click();
     advancedSettingsDialog.saveSettings(mapStep).should('not.be.visible');
