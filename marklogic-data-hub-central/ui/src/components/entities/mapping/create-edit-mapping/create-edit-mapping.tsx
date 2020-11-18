@@ -45,7 +45,7 @@ const CreateEditMapping: React.FC<Props> = (props) => {
 
   const [isValid, setIsValid] = useState(false);
   const [isNameDuplicate,setIsNameDuplicate] = useState(false);
-  const [errorMessage,setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [discardChangesVisible, setDiscardChangesVisible] = useState(false);
   const [tobeDisabled, setTobeDisabled] = useState(false);
@@ -423,6 +423,17 @@ const CreateEditMapping: React.FC<Props> = (props) => {
     setChanged(true);
   };
 
+  const isSourceQueryValid = () => {
+    if ((collections && selectedSource === 'collection') || 
+    (srcQuery && selectedSource !== 'collection') || 
+    (!isSelectedSourceTouched && !isCollectionsTouched && !isSrcQueryTouched)) {
+      props.setIsValid(true);
+      return true;
+    } else {
+      props.setIsValid(false);
+      return false;
+    }
+  }
 
   const formItemLayout = {
     labelCol: {
@@ -484,8 +495,8 @@ const CreateEditMapping: React.FC<Props> = (props) => {
           Source Query:&nbsp;<span className={styles.asterisk}>*</span>
           &nbsp;
             </span>} labelAlign="left"
-            validateStatus={((collections && selectedSource === 'collection') || (srcQuery && selectedSource !== 'collection') || (!isSelectedSourceTouched && !isCollectionsTouched && !isSrcQueryTouched)) ? '' : 'error'}
-            help={((collections && selectedSource === 'collection') || (srcQuery && selectedSource !== 'collection') || (!isSelectedSourceTouched && !isCollectionsTouched && !isSrcQueryTouched)) ? '' : 'Collection or Query is required'}
+            validateStatus={isSourceQueryValid() ? '' : 'error'}
+            help={isSourceQueryValid() ? '' : 'Collection or Query is required'}
             >
           <Radio.Group
             id="srcType"
