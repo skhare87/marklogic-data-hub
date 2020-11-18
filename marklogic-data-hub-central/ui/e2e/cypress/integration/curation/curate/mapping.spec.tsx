@@ -48,7 +48,7 @@ describe('Mapping', () => {
     cy.findByText(loadStep).should('be.visible');
 
     // Open step settings and switch to Advanced tab
-    cy.waitUntil(() => loadPage.editStepInCardView(loadStep).click({force:true}));
+    loadPage.editStepInCardView(loadStep).click({force:true});
     loadPage.stepSettings().click(); 
 
     // add processor to load step
@@ -150,7 +150,7 @@ describe('Mapping', () => {
     cy.findByText(loadStep).should('be.visible');
 
     // Open step settings and switch to Advanced tab
-    cy.waitUntil(() => loadPage.editStepInCardView(loadStep).click({force:true}));
+    loadPage.editStepInCardView(loadStep).click({force:true});
     loadPage.stepSettings().click(); 
 
     // add custom header to load step
@@ -183,7 +183,7 @@ describe('Mapping', () => {
     createEditMappingDialog.setSourceRadio('Query');
     createEditMappingDialog.setQueryInput(`cts.collectionQuery(['${loadStep}'])`);
     createEditMappingDialog.saveButton().click({force:true}); 
-    cy.waitUntil(() => curatePage.verifyStepNameIsVisible(mapStep));
+    curatePage.verifyStepNameIsVisible(mapStep);
 
     // Open step settings and switch to Advanced tab
     cy.waitUntil(() => curatePage.editStep(mapStep).click({force:true}));
@@ -191,7 +191,7 @@ describe('Mapping', () => {
 
     // add custom header
     advancedSettingsDialog.setHeaderContent('curateTile/customHeader');
-    advancedSettingsDialog.saveSettings(mapStep).click();
+    cy.waitUntil(() => advancedSettingsDialog.saveSettings(mapStep).click({force:true}));
     advancedSettingsDialog.saveSettings(mapStep).should('not.be.visible');
 
     // map source to entity
