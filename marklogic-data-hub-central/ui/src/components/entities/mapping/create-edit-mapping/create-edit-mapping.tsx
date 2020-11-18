@@ -78,6 +78,7 @@ const CreateEditMapping: React.FC<Props> = (props) => {
     }
     }
     setIsValid(true);
+    props.setIsValid(true);
     setTobeDisabled(true);
 
     setDescriptionTouched(false);
@@ -285,9 +286,11 @@ const CreateEditMapping: React.FC<Props> = (props) => {
       if (data.length > 0) {
         if (mapName) {
          setIsValid(true);
+         props.setIsValid(true);
         }
       } else {
         setIsValid(false);
+        props.setIsValid(false);
       }
     }
   }
@@ -303,10 +306,12 @@ const CreateEditMapping: React.FC<Props> = (props) => {
         if (event.target.value.length > 0) {
           if (collections|| srcQuery) {
               setIsValid(true);
+              props.setIsValid(true);
               setIsNameDuplicate(false);
           }
         } else {
           setIsValid(false);
+          props.setIsValid(false);
         }
       }
     }
@@ -341,9 +346,11 @@ const CreateEditMapping: React.FC<Props> = (props) => {
         if (event.target.value.length > 0) {
           if (mapName) {
             setIsValid(true);
+            props.setIsValid(true);
           }
         } else {
           setIsValid(false);
+          props.setIsValid(false);
         }
       }
     }
@@ -363,9 +370,11 @@ const CreateEditMapping: React.FC<Props> = (props) => {
         if (event.target.value.length > 0) {
           if (mapName) {
             setIsValid(true);
+            props.setIsValid(true);
           }
         } else {
           setIsValid(false);
+          props.setIsValid(false);
         }
       }
     }
@@ -409,14 +418,18 @@ const CreateEditMapping: React.FC<Props> = (props) => {
       if (event.target.value === 'collection') {
         if (mapName && collections) {
           setIsValid(true);
+          props.setIsValid(true);
         } else {
           setIsValid(false);
+          props.setIsValid(false);
         }
       } else {
         if (mapName && srcQuery) {
           setIsValid(true);
+          props.setIsValid(true);
         } else {
           setIsValid(false);
+          props.setIsValid(false);
         }
       }
     }

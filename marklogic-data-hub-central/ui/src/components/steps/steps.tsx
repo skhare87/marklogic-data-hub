@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Tabs } from 'antd';
 import CreateEditLoad from '../load/create-edit-load/create-edit-load';
 import CreateEditMapping from '../entities/mapping/create-edit-mapping/create-edit-mapping';
@@ -36,6 +36,10 @@ const Steps: React.FC<Props> = (props) => {
     const [isValid, setIsValid] = useState(true);
     const [hasChanged, setHasChanged] = useState(false);
     const [discardChangesVisible, setDiscardChangesVisible] = useState(false);
+
+    useEffect(() => {
+        console.log('useEffect', isValid);
+    }, [isValid])
 
     const onCancel = () => {
         if (hasChanged) {
